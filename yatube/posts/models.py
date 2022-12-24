@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -18,7 +18,7 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         verbose_name="Группа")
     image = models.ImageField(
-        'Картинка',
+        verbose_name='Картинка',
         upload_to='posts/',
         blank=True
     )
@@ -68,3 +68,10 @@ class Follow(models.Model):
                              related_name="follower")
     author = models.ForeignKey(User, on_delete=models.CASCADE,
                                related_name="following")
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                name='uniq_follow'),
+        )

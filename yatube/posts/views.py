@@ -1,11 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 
-
-from .forms import PostForm, CommentForm
-from .models import Group, Post, User, Follow
+from .forms import CommentForm, PostForm
+from .models import Follow, Group, Post, User
 
 
 def index(request):
@@ -36,7 +35,7 @@ def group_posts(request, slug):
 
 def profile(request, username):
     template = 'posts/profile.html'
-    author = User.objects.get(username=username)
+    author = get_object_or_404(User, username=username)
     full_name = author.get_full_name()
     post_list = Post.objects.filter(author=author).all()
     post_count = Post.objects.filter(author=author).count()
@@ -62,8 +61,8 @@ def profile(request, username):
 def post_detail(request, post_id):
     template = 'posts/post_detail.html'
     form = CommentForm(request.POST or None)
-    post = Post.objects.get(pk=post_id)
-    author = User.objects.get(posts=post)
+    post = get_object_or_404(Post, pk=post_id)
+    author = get_object_or_404(User, posts=post)
     group = post.group
     full_name = author.get_full_name()
     post_count = Post.objects.filter(author=author).count()
@@ -104,26 +103,22 @@ def post_create(request):
 @login_required
 def post_edit(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None,
+        instance=post
+    )
     if post.author != request.user:
         return redirect('posts:index')
-    else:
-        if request.method == "POST":
-            form = PostForm(
-                request.POST or None,
-                files=request.FILES or None,
-                instance=post
-            )
-            if form.is_valid():
-                post = form.save(commit=False)
-                post.save()
-                return redirect('posts:post_detail', post_id)
-        else:
-            form = PostForm(instance=post)
-        context = {
-            "form": form,
-            "is_edit": True,
-        }
-        return render(request, 'posts/create_post.html', context)
+    if form.is_valid():
+        post = form.save(commit=False)
+        post.save()
+        return redirect('posts:post_detail', post_id)
+    context = {
+        "form": form,
+        "is_edit": True,
+    }
+    return render(request, 'posts/create_post.html', context)
 
 
 @login_required
@@ -153,7 +148,7 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     user = request.user
-    author = User.objects.get(username=username)
+    author = get_object_or_404(User, username=username)
     is_follower = Follow.objects.filter(user=user, author=author)
     if user != author and not is_follower.exists():
         Follow.objects.create(user=user, author=author)
