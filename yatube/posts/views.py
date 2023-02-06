@@ -8,7 +8,7 @@ from .models import Follow, Group, Post, User
 
 
 def index(request):
-    post_list = Post.objects.all().order_by('-pub_date')
+    post_list = Post.objects.all()
     paginator = Paginator(post_list, settings.POST_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -19,14 +19,12 @@ def index(request):
 
 
 def group_posts(request, slug):
-    title = f"Все записи группы {slug}"
     group = get_object_or_404(Group, slug=slug)
     post_list = Post.objects.filter(group=group)
     paginator = Paginator(post_list, settings.POST_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {
-        'title': title,
         'group': group,
         'page_obj': page_obj,
     }
@@ -34,11 +32,10 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
-    template = 'posts/profile.html'
     author = get_object_or_404(User, username=username)
     full_name = author.get_full_name()
     post_list = Post.objects.filter(author=author)
-    post_count = Post.objects.filter(author=author).count()
+    post_count = post_list.count()
     paginator = Paginator(post_list, settings.POST_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -55,11 +52,10 @@ def profile(request, username):
         'page_obj': page_obj,
         'following': following,
     }
-    return render(request, template, context)
+    return render(request, 'posts/profile.html', context)
 
 
 def post_detail(request, post_id):
-    template = 'posts/post_detail.html'
     form = CommentForm(request.POST or None)
     post = get_object_or_404(Post, pk=post_id)
     author = get_object_or_404(User, posts=post)
@@ -76,7 +72,7 @@ def post_detail(request, post_id):
         'comments': comments,
         'form': form,
     }
-    return render(request, template, context)
+    return render(request, 'posts/post_detail.html', context)
 
 
 @login_required
